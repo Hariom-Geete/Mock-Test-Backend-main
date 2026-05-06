@@ -1,0 +1,1 @@
+//  # Standardized error throwing (e.g., throw new ApiError(401, "Invalid"))
