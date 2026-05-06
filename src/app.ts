@@ -39,17 +39,22 @@ app.use(globalLimiter);
 // ✅ CORS
 app.use(
   cors({
-    origin: "http://localhost:5173", // ⚠️ change in production
+    origin: [
+      "http://localhost:5173",
+      "https://www.brainmock.com"
+    ],
     credentials: true,
   })
 );
 
 // ✅ JSON parser
-app.use(express.json({ limit: "10kb" }));
+app.use(express.json({ limit: "1mb" }));
 
 // ✅ NoSQL injection protection
 app.use((req, _res, next) => {
-  req.body = mongoSanitize(req.body);
+  if (req.body) {
+    req.body = mongoSanitize(req.body);
+  }
   next();
 });
 
