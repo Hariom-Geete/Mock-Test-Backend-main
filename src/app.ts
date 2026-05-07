@@ -39,7 +39,7 @@ app.use(globalLimiter);
 // ✅ CORS
 app.use(
   cors({
-    origin: "http://localhost:5173", // ⚠️ change in production
+    origin: "https://www.brainmock.com", 
     credentials: true,
   })
 );
