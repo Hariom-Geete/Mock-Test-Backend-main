@@ -49,8 +49,8 @@ export const startExamAttempt = async (
 export const submitExamAttempt = async (
   attemptId: string,
   studentId: string,
-  answersArray: { questionId: string; selectedAnswer: number | null }[], // ✅ Added null here
-  frontendAutoSubmit: boolean = false, // ✅ Fixed parameter name
+  answersArray: { questionId: string; selectedAnswer: number | null }[],
+  frontendAutoSubmit: boolean = false, 
 ) => {
   const attempt = await ExamAttempt.findOne({ _id: attemptId, studentId });
   if (!attempt) throw new AppError("Attempt not found", 404);
@@ -60,16 +60,16 @@ export const submitExamAttempt = async (
   const test = await Test.findById(attempt.testId);
   if (!test) throw new AppError("Test not found", 404);
 
-  // ── 1. STRICT TIME VALIDATION (Server Side) ──
+  // ── 1. STRICT TIME VALIDATION ──
   const allowedTimeMs = test.duration * 60 * 1000;
   const timeElapsedMs = new Date().getTime() - attempt.startedAt.getTime();
   const timeSpentMins = Math.floor(timeElapsedMs / 60000);
 
-  let isAutoSubmit = frontendAutoSubmit; // ✅ Logic fixed
+  let isAutoSubmit = frontendAutoSubmit; 
 
   // Give a 2-minute buffer for network latency
   if (timeElapsedMs > allowedTimeMs + 120000) {
-    isAutoSubmit = true; // Force auto-submit format if student tries to trick timer
+    isAutoSubmit = true; 
   }
 
   // ── 2. MANDATORY QUESTION CHECK ──
@@ -85,9 +85,10 @@ export const submitExamAttempt = async (
     }
   }
 
-  // ── 3. SCORING ENGINE ──
+  // ── 3. 🔥 NEW ACCURATE SCORING ENGINE 🔥 ──
   let correctCount = 0;
   let wrongCount = 0;
+  let unattemptedCount = 0;
   let totalScore = 0;
 
   const allQuestions = await Question.find({ testId: test._id });
@@ -98,46 +99,59 @@ export const submitExamAttempt = async (
     let isCorrect = false;
     let marksObtained = 0;
 
-    if (
-      qDetails &&
-      ans.selectedAnswer !== null &&
-      ans.selectedAnswer !== undefined
-    ) {
-      if (qDetails.correctAnswer === ans.selectedAnswer) {
+    // Agar question DB me exist karta hai
+    if (qDetails) {
+      const isAnswered = ans.selectedAnswer !== null && ans.selectedAnswer !== undefined;
+
+      if (!isAnswered) {
+        // 🟡 Skipped / Unattempted
+        unattemptedCount++;
+        marksObtained = 0;
+      } 
+      else if (qDetails.correctAnswer === ans.selectedAnswer) {
+        // 🟢 Correct Answer
         isCorrect = true;
-        // Handling dynamic marking if standard marks missing
-        marksObtained = (test.totalMarks / attempt.totalQuestions) || 4;
         correctCount++;
-      } else {
-        marksObtained = 0; // If you have negative marks, do: -(test.negativeMarks || 0)
+        // Prefer individual question marks, fallback to test global settings
+        marksObtained = qDetails.marks || test.marksPerQuestion || 1;
+        totalScore += marksObtained; 
+      } 
+      else {
+        // 🔴 Wrong Answer (Negative Marking applied here)
         wrongCount++;
+        // Prefer individual negative marks, fallback to test global negative marking
+        const penalty = qDetails.negativeMarks !== undefined ? qDetails.negativeMarks : (test.negativeMarking || 0);
+        marksObtained = -Math.abs(penalty); // Make sure it's a negative value
+        totalScore += marksObtained; // Subtracting penalty from total
       }
-      totalScore += marksObtained;
     }
 
     return {
       questionId: ans.questionId,
-      selectedAnswer: ans.selectedAnswer ?? null, // Safely fallback to null
+      selectedAnswer: ans.selectedAnswer ?? null, 
       isCorrect,
       marksObtained,
     };
   });
 
-  // Calculate Percentage
-  const maxPossibleMarks = test.totalMarks || attempt.totalQuestions * 4;
-  const percentage =
-    maxPossibleMarks > 0
-      ? Math.max(0, Math.round((totalScore / maxPossibleMarks) * 100))
+  // Calculate Percentage dynamically based on actual max possible marks
+  const maxPossibleMarks = allQuestions.reduce((acc, q) => acc + (q.marks || test.marksPerQuestion || 1), 0);
+  
+  // Optional: Cap score at 0 so student doesn't get negative final percentage (e.g. -5%)
+  const finalScore = Math.max(0, totalScore);
+  
+  const percentage = maxPossibleMarks > 0
+      ? Math.max(0, Math.round((finalScore / maxPossibleMarks) * 100))
       : 0;
 
   // ── 4. SAVE FINAL RESULT ──
   attempt.answers = evaluatedAnswers as any;
   attempt.correctAnswers = correctCount;
   attempt.wrongAnswers = wrongCount;
-  attempt.unanswered = attempt.totalQuestions - (correctCount + wrongCount);
-  attempt.score = totalScore;
+  attempt.unanswered = unattemptedCount; // Set properly now
+  attempt.score = totalScore; // This will save exactly 38 in your example!
   attempt.percentage = percentage;
-  attempt.timeSpent = Math.min(timeSpentMins, test.duration); // Cap time spent
+  attempt.timeSpent = Math.min(timeSpentMins, test.duration); 
   attempt.status = "submitted";
   attempt.submittedAt = new Date();
   attempt.isAutoSubmitted = isAutoSubmit;

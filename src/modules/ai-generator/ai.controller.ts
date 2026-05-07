@@ -31,12 +31,17 @@ export const generateTestFromImage = asyncHandler(
     }
 
     // 4. Save as a "Draft" Test using your existing service
-    // 4. Save as a "Draft" Test using your existing service
+    // 🔥 BASIC DEFAULTS FOR AI DRAFT
+    const MARKS_PER_Q = 1;
+    const NEGATIVE_MARKS = 0;
+
+    // 4. Save as a "Draft" Test
     const newTest = await createTest({
-      title: `AI Generated Exam - ${new Date().toLocaleDateString()}`,
+      title: `Scanned Paper - ${new Date().toLocaleDateString('en-GB')}`,
       duration: 60, 
-      totalMarks: questionsList.length, 
-      // status: "draft"  <--- YE LINE HATA DE
+      totalMarks: questionsList.length * MARKS_PER_Q, // 👈 Total marks default set hoga
+      marksPerQuestion: MARKS_PER_Q,
+      negativeMarking: NEGATIVE_MARKS,
     }, instituteId, createdBy);
 
     // 5. Loop through AI output and save Questions using your existing service
