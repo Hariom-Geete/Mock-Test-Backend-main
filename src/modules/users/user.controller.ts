@@ -20,6 +20,7 @@ import { uploadOnCloudinary } from "../../shared/utils/cloudinary.js";
 export const createStudentController = asyncHandler(
   async (req: Request & { user?: any }, res: Response) => {
     const { name, email, batchId } = req.body;
+    
     // 🔐 Get instituteId from token (NEVER from frontend)
     const instituteId = req.user?.instituteId;
     if (!instituteId) {
@@ -32,27 +33,21 @@ export const createStudentController = asyncHandler(
     // 🔥 Generate username automatically
     const username = await generateUsername(name);
     const tempPassword = `EXAM-${Math.floor(1000 + Math.random() * 9000)}`;
+    
+    // Yahan service call hoti hai, aur yahi service Email bhi bhej degi! ✉️
     const student = await createStudentUser(
       { name, email, username, password: tempPassword, batchId },
       instituteId,
     );
-    try {
-      // ✅ FIXED: Second argument is Subject now!
-      await sendEmail(
-        email,
-        "Welcome to ExamAI - Your Login Credentials 🎓",
-        studentCredentialsTemplate(name, email, tempPassword),
-      );
-    } catch (error) {
-      console.log("Email error (User created):", error);
-    }
+
+    // ❌ YAHAN SE DUSRA sendEmail() HATA DIYA HAI KYUNKI WO SERVICE MEIN ALREADY HAI ❌
 
     res.status(201).json({
       success: true,
-      message: "Student created successfully",
+      message: "Student created successfully and credentials sent to email.",
       data: { student, username, tempPassword },
     });
-  },
+  }
 );
 
 export const deleteStudentController = asyncHandler(

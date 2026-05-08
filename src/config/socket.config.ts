@@ -7,66 +7,46 @@ const userSocketMap = new Map<string, string>();
 
 // 🚀 INIT SOCKET
 export const initSocket = (server: any) => {
+  // 🔥 SMART CORS CONFIGURATION
+  // Agar .env me FRONTEND_URL hai toh wo use karega, nahi toh localhost.
+  // Saath me tera live domain bhi array me daal diya taaki kabhi block na ho.
+  const allowedOrigins = [
+    process.env.FRONTEND_URL || "http://localhost:5173",
+    "https://www.brainmock.com",
+    "https://brainmock.com",
+  ];
+
   io = new Server(server, {
     cors: {
-      origin: "http://localhost:5173",
-
+      origin: allowedOrigins,
       credentials: true,
     },
-
     transports: ["websocket", "polling"],
-
     pingTimeout: 60000,
   });
 
-  io.on(
-    "connection",
+  io.on("connection", (socket) => {
+    console.log("✅ Socket connected:", socket.id);
 
-    (socket) => {
-      console.log(
-        "✅ Socket connected:",
+    // 🚀 REGISTER USER
+    socket.on("register", (userId: string) => {
+      userSocketMap.set(userId, socket.id);
+      console.log(`User registered: ${userId}`);
+    });
 
-        socket.id,
-      );
+    // ❌ DISCONNECT
+    socket.on("disconnect", () => {
+      console.log("❌ Socket disconnected:", socket.id);
 
-      // 🚀 REGISTER USER
-      socket.on(
-        "register",
-
-        (userId: string) => {
-          userSocketMap.set(
-            userId,
-
-            socket.id,
-          );
-
-          console.log(`User registered: ${userId}`);
-        },
-      );
-
-      // ❌ DISCONNECT
-      socket.on(
-        "disconnect",
-
-        () => {
-          console.log(
-            "❌ Socket disconnected:",
-
-            socket.id,
-          );
-
-          // REMOVE USER
-          for (const [userId, socketId] of userSocketMap.entries()) {
-            if (socketId === socket.id) {
-              userSocketMap.delete(userId);
-
-              break;
-            }
-          }
-        },
-      );
-    },
-  );
+      // REMOVE USER
+      for (const [userId, socketId] of userSocketMap.entries()) {
+        if (socketId === socket.id) {
+          userSocketMap.delete(userId);
+          break;
+        }
+      }
+    });
+  });
 
   return io;
 };
@@ -76,7 +56,6 @@ export const getIO = () => {
   if (!io) {
     throw new Error("Socket.io not initialized");
   }
-
   return io;
 };
 
