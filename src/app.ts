@@ -39,7 +39,7 @@ app.use(globalLimiter);
 // ✅ CORS
 app.use(
   cors({
-    origin: "https://www.brainmock.com",  
+    origin: "https://www.brainmock.com", 
     credentials: true,
   })
 );
