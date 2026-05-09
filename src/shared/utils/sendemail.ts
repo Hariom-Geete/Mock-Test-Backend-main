@@ -8,13 +8,20 @@ export const sendEmail = async (
   try {
     const transporter = nodemailer.createTransport({
       host: "smtp.hostinger.com",
-      port: 465,
-      secure: true,
+      port: 587,
+      secure: false,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
-    });
+      tls: {
+        rejectUnauthorized: false,
+        family: 4 as any, // force IPv4
+      },
+    } as any);
+
+    await transporter.verify();
+    console.log("✅ SMTP connected");
 
     const info = await transporter.sendMail({
       from: `"BrainMock" <${process.env.EMAIL_USER}>`,
@@ -27,11 +34,7 @@ export const sendEmail = async (
     return true;
 
   } catch (error: any) {
-    // 🔥 YE TUJHE ASLI BIMARI BATAYEGA
-    console.error("❌ HOSTINGER EMAIL ERROR:", error.message);
-    
-    // Hum yahan jaan-bujh kar error throw nahi kar rahe, 
-    // taaki email fail hone par student create hone ka process na ruke.
+    console.error("❌ HOSTINGER EMAIL ERROR:", error);
     return false;
   }
 };
