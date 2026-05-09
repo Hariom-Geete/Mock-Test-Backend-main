@@ -1,8 +1,11 @@
-//  # Links to Institute (e.g., 'Target 2026')
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IBatch extends Document {
   name: string;
+  description?: string;
+  startDate?: Date;
+  endDate?: Date;
+  status: "active" | "inactive";
   instituteId: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -16,9 +19,29 @@ const batchSchema = new Schema<IBatch>(
       trim: true,
     },
 
+    description: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    startDate: {
+      type: Date,
+    },
+
+    endDate: {
+      type: Date,
+    },
+
+    status: {
+      type: String,
+      enum: ["active", "inactive"],
+      default: "active",
+    },
+
     instituteId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Institute", // 🔥 FIX: Ye pehle "User" tha, isko "Institute" karna hai
+      ref: "Institute",
       required: true,
       index: true,
     },
@@ -28,9 +51,14 @@ const batchSchema = new Schema<IBatch>(
   }
 );
 
-// 🔥 prevent duplicate batch names inside same institute
-batchSchema.index({ instituteId: 1, name: 1 }, { unique: true });
+batchSchema.index(
+  { instituteId: 1, name: 1 },
+  { unique: true }
+);
 
-const Batch = mongoose.model<IBatch>("Batch", batchSchema);
+const Batch = mongoose.model<IBatch>(
+  "Batch",
+  batchSchema
+);
 
 export default Batch;
