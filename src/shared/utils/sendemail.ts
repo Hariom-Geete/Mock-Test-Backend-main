@@ -8,20 +8,15 @@ export const sendEmail = async (
   try {
     const transporter = nodemailer.createTransport({
       host: "smtp.hostinger.com",
-      port: 587,
-      secure: false,
+      port: 465,       // 🔥 Hostinger ke liye 465
+      secure: true,    // 🔥 465 port ke liye true
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
-      tls: {
-        rejectUnauthorized: false,
-        family: 4 as any, // force IPv4
-      },
-    } as any);
-
-    await transporter.verify();
-    console.log("✅ SMTP connected");
+      // 🚀 Force IPv4 for Railway
+      family: 4, 
+    } as any); // 👈 YAHAN 'as any' LAGA DIYA TAARI TYPESCRIPT ERROR NA DE
 
     const info = await transporter.sendMail({
       from: `"BrainMock" <${process.env.EMAIL_USER}>`,
@@ -34,7 +29,7 @@ export const sendEmail = async (
     return true;
 
   } catch (error: any) {
-    console.error("❌ HOSTINGER EMAIL ERROR:", error);
+    console.error("❌ HOSTINGER EMAIL ERROR:", error.message);
     return false;
   }
 };
