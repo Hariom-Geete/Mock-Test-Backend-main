@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer";
-import dns from "dns"; // 👈 YE NAYA IMPORT HAI
+import dns from "dns";
 
-// 🚀 THE ULTIMATE FIX: Ye poore Node.js ko majboor karega IPv4 (purana system) use karne pe
+// 🚀 Keep this! It forces IPv4 and stops the ENETUNREACH error
 dns.setDefaultResultOrder("ipv4first");
 
 export const sendEmail = async (
@@ -12,13 +12,15 @@ export const sendEmail = async (
   try {
     const transporter = nodemailer.createTransport({
       host: "smtp.hostinger.com",
-      port: 465,
-      secure: true,
+      port: 587,          // 🔥 Changed to 587 (Standard TLS port)
+      secure: false,      // 🔥 MUST be false for port 587
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
-      // Yahan se 'family: 4 as any' hata diya hai kyunki ab uski zaroorat nahi
+      tls: {
+        rejectUnauthorized: false // 🔥 Hostinger ke strict SSL check ko bypass karne ke liye
+      }
     });
 
     const info = await transporter.sendMail({
