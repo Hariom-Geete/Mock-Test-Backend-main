@@ -5,17 +5,22 @@ import { Request } from 'express';
 const storage = multer.memoryStorage();
 
 // 2. File Filter (Security Check)
-// Ye ensure karega ki user sirf image upload kare, PDF ya virus wali .exe file nahi
 const fileFilter = (
     req: Request, 
     file: Express.Multer.File, 
     cb: FileFilterCallback
 ) => {
-    // Check if the file type is an image
-    if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png' || file.mimetype === 'image/jpg') {
+    // 🔥 UPDATE: Ab image ke sath-sath PDF bhi allowed hai
+    if (
+        file.mimetype === 'image/jpeg' || 
+        file.mimetype === 'image/png' || 
+        file.mimetype === 'image/jpg' || 
+        file.mimetype === 'application/pdf' // 👈 PDF ka pass add kar diya
+    ) {
         cb(null, true); // Accept file
     } else {
-        cb(new Error('Sirf images (JPEG, PNG, JPG) allow hain bro!')); // Reject file
+        // Error message update kar diya
+        cb(new Error('Sirf images (JPEG, PNG, JPG) aur PDF allow hain bro!')); 
     }
 };
 
@@ -24,6 +29,6 @@ export const uploadMiddleware = multer({
     storage: storage,
     fileFilter: fileFilter,
     limits: {
-        fileSize: 5 * 1024 * 1024, // 5 MB max limit (server crash hone se bachane ke liye)
+        fileSize: 10 * 1024 * 1024, // 🔥 10 MB max limit kar di (PDF ke liye safe zone)
     }
 });
